@@ -1,0 +1,29 @@
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# MRI datasets
+data/raw/
+data/processed/
+
+# Model weights
+*.pth
+*.pt
+*.onnx
+*.ckpt
+models/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# macOS and editor files
+.DS_Store
+.vscode/
