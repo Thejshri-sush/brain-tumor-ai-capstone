@@ -1,1 +1,31 @@
+
+# Python
 .venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# MRI datasets and generated outputs
+data/
+outputs/
+*.nii
+*.nii.gz
+*.dcm
+*.dicom
+
+# Model weights and checkpoints
+models/
+*.pth
+*.pt
+*.ckpt
+*.onnx
+
+# macOS and notebooks
+.DS_Store
+.ipynb_checkpoints/
+

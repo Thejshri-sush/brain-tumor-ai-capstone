@@ -1,6 +1,101 @@
 
 from pathlib import Path
 
+import nibabel as nib
+import numpy as np
+
+DATA_DIR = (
+    Path.home()
+    / "Documents"
+    / "BrainTumorDataset"
+    / "NIfTI"
+)
+
+OUTPUT_DIR = (
+    Path(__file__).resolve().parents[2]
+    / "outputs"
+    / "processed"
+)
+
+SUBJECT = "UPENN-GBM-00002_11"
+
+MRI_MODALITIES = ["FLAIR", "T1", "T1GD", "T2"]
+
+
+def normalize_mri(image):
+    """Z-score normalize nonzero MRI voxels."""
+    image = image.astype(np.float32)
+    brain_mask = np.isfinite(image) & (image != 0)
+
+    normalized = np.zeros_like(image, dtype=np.float32)
+
+    if not np.any(brain_mask):
+        raise ValueError("MRI contains no nonzero voxels.")
+
+    values = image[brain_mask]
+    mean = values.mean()
+    std = values.std()
+
+    if not np.isfinite(std) or std < 1e-8:
+        raise ValueError("MRI intensity variation is too small.")
+
+    normalized[brain_mask] = (values - mean) / std
+    return normalized
+
+
+def main():
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    reference_path = (
+        DATA_DIR / "MRI" / f"{SUBJECT}_FLAIR.nii"
+    )
+    reference_img = nib.load(str(reference_path))
+
+    for modality in MRI_MODALITIES:
+        input_path = DATA_DIR / "MRI" / f"{SUBJECT}_{modality}.nii"
+        image_obj = nib.load(str(input_path))
+
+        if image_obj.shape != reference_img.shape:
+            raise ValueError(
+                f"{modality}: dimensions differ from FLAIR."
+            )
+
+        if not np.allclose(
+            image_obj.affine, reference_img.affine, atol=1e-4
+        ):
+            raise ValueError(
+                f"{modality}: spatial alignment differs from FLAIR."
+            )
+
+        image = image_obj.get_fdata(dtype=np.float32)
+        normalized = normalize_mri(image)
+
+        output_path = (
+            OUTPUT_DIR / f"{SUBJECT}_{modality}_normalized.nii.gz"
+        )
+
+        output_img = nib.Nifti1Image(
+            normalized, image_obj.affine, image_obj.header
+        )
+        output_img.set_data_dtype(np.float32)
+        nib.save(output_img, str(output_path))
+
+        print(f"\nProcessed: {modality}")
+        print("Output:", output_path)
+        print("Shape:", normalized.shape)
+        print("Normalized range:",
+              float(normalized.min()), "to",
+              float(normalized.max()))
+
+    print("\nMRI preprocessing completed.")
+    print("Original MRI files and tumour mask were not modified.")
+
+
+if __name__ == "__main__":
+    main()
+
+from pathlib import Path
+
 import numpy as np
 from PIL import Image
 from skimage import exposure, filters, util
